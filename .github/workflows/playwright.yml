@@ -30,6 +30,8 @@ jobs:
       HTTP_PASSWORD: ${{ secrets.HTTP_PASSWORD }}
       ADMIN_CLIENT_ID: ${{ secrets.ADMIN_CLIENT_ID }}
       ADMIN_CLIENT_SECRET: ${{ secrets.ADMIN_CLIENT_SECRET }}
+      ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
       SW_ACCESS_KEY: ${{ secrets.SW_ACCESS_KEY }}
       HOME: /root
     steps:
