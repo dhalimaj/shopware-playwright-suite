@@ -1,0 +1,47 @@
+# GitLab CI — Shopware Playwright suite
+# Required CI/CD variables (masked + protected):
+#   BASE_URL, PROJECT, ADMIN_CLIENT_ID, ADMIN_CLIENT_SECRET (or ADMIN_USERNAME/ADMIN_PASSWORD)
+# Optional: HTTP_USERNAME, HTTP_PASSWORD, SW_ACCESS_KEY, ALLOW_WRITE_TESTS, EXTRA_BROWSERS
+
+stages: [test]
+
+variables:
+  PROJECT: demo
+  CI: 'true'
+  npm_config_cache: '$CI_PROJECT_DIR/.npm'
+
+.playwright:
+  stage: test
+  # Keep the image tag in sync with @playwright/test in package.json
+  image: mcr.microsoft.com/playwright:v1.63.0-noble
+  cache:
+    key: { files: [package-lock.json] }
+    paths: [.npm/]
+  before_script:
+    - npm ci
+  artifacts:
+    when: always
+    expire_in: 14 days
+    paths: [playwright-report/, test-results/]
+    reports:
+      junit: test-results/junit.xml
+
+smoke:
+  extends: .playwright
+  script:
+    - npx playwright test --grep @smoke --project=chromium
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+regression:
+  extends: .playwright
+  parallel: 2
+  script:
+    - npx playwright test --shard=$CI_NODE_INDEX/$CI_NODE_TOTAL
+  rules:
+    # nightly schedule or manual run
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - when: manual
+      allow_failure: true

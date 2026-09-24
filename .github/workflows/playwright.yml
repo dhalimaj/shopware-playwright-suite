@@ -1,0 +1,54 @@
+name: Playwright E2E
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 3 * * *' # nightly full regression
+  workflow_dispatch:
+    inputs:
+      grep:
+        description: 'Only run tests matching (e.g. @smoke)'
+        required: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    env:
+      CI: 'true'
+      PROJECT: ${{ vars.PROJECT || 'demo' }}
+      BASE_URL: ${{ vars.BASE_URL }}
+      HTTP_USERNAME: ${{ secrets.HTTP_USERNAME }}
+      HTTP_PASSWORD: ${{ secrets.HTTP_PASSWORD }}
+      ADMIN_CLIENT_ID: ${{ secrets.ADMIN_CLIENT_ID }}
+      ADMIN_CLIENT_SECRET: ${{ secrets.ADMIN_CLIENT_SECRET }}
+      SW_ACCESS_KEY: ${{ secrets.SW_ACCESS_KEY }}
+      HOME: /root
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run tests
+        run: |
+          GREP="${{ github.event.inputs.grep }}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then GREP="@smoke"; fi
+          npx playwright test ${GREP:+--grep "$GREP"} --shard=${{ matrix.shard }}/2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.shard }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14

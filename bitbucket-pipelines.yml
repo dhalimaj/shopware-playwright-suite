@@ -1,0 +1,69 @@
+# Bitbucket Pipelines — Shopware Playwright suite
+#
+# Repository settings → Repository variables (mark secrets as "Secured"):
+#   PROJECT, BASE_URL, ADMIN_USERNAME + ADMIN_PASSWORD (or ADMIN_CLIENT_ID + ADMIN_CLIENT_SECRET)
+#   optional: HTTP_USERNAME, HTTP_PASSWORD, SW_ACCESS_KEY, ALLOW_WRITE_TESTS
+#
+# Nightly run: Pipelines → Schedules → New schedule → pipeline "custom: full-regression"
+
+# Keep the tag in sync with @playwright/test in package.json
+image: mcr.microsoft.com/playwright:v1.63.0-noble
+
+options:
+  max-time: 45
+
+definitions:
+  steps:
+    - step: &smoke
+        name: Smoke tests (chromium)
+        size: 2x
+        caches: [node]
+        script:
+          - export CI=true
+          - npm ci
+          - npx playwright test --grep @smoke --project=chromium
+        artifacts:
+          - playwright-report/**
+          - test-results/**
+    - step: &shard1
+        name: Full regression 1/2
+        size: 2x
+        caches: [node]
+        script:
+          - export CI=true
+          - npm ci
+          - npx playwright test --shard=1/2
+        artifacts:
+          - playwright-report/**
+          - test-results/**
+    - step: &shard2
+        name: Full regression 2/2
+        size: 2x
+        caches: [node]
+        script:
+          - export CI=true
+          - npm ci
+          - npx playwright test --shard=2/2
+        artifacts:
+          - playwright-report/**
+          - test-results/**
+
+pipelines:
+  # every pull request → quick smoke run
+  pull-requests:
+    '**':
+      - step: *smoke
+
+  # pushes to main → smoke run
+  branches:
+    main:
+      - step: *smoke
+
+  # manual or scheduled (nightly) → full suite, desktop + mobile, 2 parallel shards
+  custom:
+    full-regression:
+      - parallel:
+          - step: *shard1
+          - step: *shard2
+    smoke:
+      - step: *smoke
