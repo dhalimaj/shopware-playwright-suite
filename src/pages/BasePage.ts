@@ -20,8 +20,12 @@ export abstract class BasePage {
     return this.page.locator(selector);
   }
 
+  /**
+   * Waits for `load` so Shopware's JS plugins are bound — clicking earlier submits
+   * forms natively (e.g. add-to-cart reloads the page instead of opening the off-canvas).
+   */
   async goto(path: string): Promise<Response | null> {
-    return this.page.goto(path, { waitUntil: 'domcontentloaded' });
+    return this.page.goto(path, { waitUntil: 'load' });
   }
 
   /** Shopware sets body classes like "is-ctl-checkout is-act-cartpage". */

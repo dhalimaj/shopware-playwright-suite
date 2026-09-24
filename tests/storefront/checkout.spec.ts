@@ -51,7 +51,10 @@ test.describe('Checkout', () => {
     const tos = page.locator(cfg.selectors.checkout.tos);
     test.skip((await tos.count()) === 0, 'Shop has no TOS checkbox');
     await checkout.submitButton.click();
-    await expect(page).toHaveURL(new RegExp(cfg.routes.checkoutConfirm));
+    // Shopware rewrites the URL client-side (history API) without submitting — assert
+    // we are still on the confirm page instead of matching the URL.
+    await expect(page).not.toHaveURL(/\/checkout\/finish/);
+    await expect(checkout.submitButton).toBeVisible();
     const s = cfg.selectors.checkout.tos;
     await expect(page.locator(`${s}:invalid, ${s}${cfg.selectors.page.invalidField}`)).toHaveCount(1);
   });

@@ -22,7 +22,8 @@ test.describe('Important links & redirects', () => {
     await page.goto(cfg.routes.home);
     const hrefs = await page
       .locator(`${cfg.selectors.header.root} a[href], ${cfg.selectors.footer.root} a[href]`)
-      .evaluateAll((as) => as.map((a) => (a as HTMLAnchorElement).href));
+      // getAttribute: SVG <a> elements expose href as SVGAnimatedString, not a string
+      .evaluateAll((as) => as.map((a) => new URL(a.getAttribute('href') ?? '', document.baseURI).href));
     const origin = new URL(cfg.baseURL).origin;
     const internal = [...new Set(hrefs)].filter((h) => h.startsWith(origin) && !h.includes('/account/logout')).slice(0, 60);
     const broken: string[] = [];

@@ -32,7 +32,8 @@ export const shopware67Selectors = {
     searchButton: '.header-search-btn',
     /** mobile: search field is collapsed behind a toggle button */
     searchToggle: '.js-search-toggle-btn, .search-toggle-btn, [data-bs-target="#searchCollapse"], [aria-controls="searchCollapse"]',
-    searchSuggest: '.search-suggest',
+    /** the outer .search-suggest wrapper has zero width — target the visible list */
+    searchSuggest: '.search-suggest-container',
     searchSuggestProduct: '.search-suggest-product',
     cart: '.header-cart',
     cartTotal: '.header-cart-total',

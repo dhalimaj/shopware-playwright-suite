@@ -17,11 +17,32 @@ export class OffcanvasCart extends BasePage {
     await expect(this.root).toBeVisible();
   }
 
+  /**
+   * The off-canvas content is injected after its XHR and Shopware binds its JS plugins
+   * afterwards — clicking +/- before that is silently ignored.
+   */
+  private async waitUntilReady(name: string): Promise<void> {
+    await expect(this.root).not.toHaveClass(/showing/);
+    const selector = this.lineItem(name).locator('[data-quantity-selector]').first();
+    await expect(selector).toBeVisible();
+    await selector.evaluate((el) =>
+      new Promise<void>((resolve) => {
+        const check = () =>
+          (window as any).PluginManager?.getPluginInstanceFromElement(el, 'QuantitySelector')
+            ? resolve()
+            : requestAnimationFrame(check);
+        check();
+      }),
+    );
+  }
+
   async increaseQuantity(name: string): Promise<void> {
+    await this.waitUntilReady(name);
     await this.waitForXhr('/checkout/offcanvas', () => this.lineItem(name).locator(this.s.offcanvasCart.plus).click());
   }
 
   async remove(name: string): Promise<void> {
+    await this.waitUntilReady(name);
     await this.waitForXhr('/checkout/offcanvas', () => this.lineItem(name).locator(this.s.offcanvasCart.remove).click());
   }
 

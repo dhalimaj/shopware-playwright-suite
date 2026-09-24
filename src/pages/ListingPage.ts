@@ -45,8 +45,24 @@ export class ListingPage extends BasePage {
     return this.sorting.locator('option').evaluateAll((o) => o.map((x) => (x as HTMLOptionElement).value));
   }
 
+  /**
+   * Runs `action` and waits until Shopware has swapped in the new listing HTML —
+   * the XHR response alone arrives before the old product boxes are replaced.
+   */
+  private async reloadListing(action: () => Promise<unknown>): Promise<void> {
+    const oldBox = await this.productBoxes.first().elementHandle({ timeout: 1_000 }).catch(() => null);
+    await this.waitForXhr(ListingPage.LISTING_XHR, action);
+    if (oldBox) await this.page.waitForFunction((el) => !el.isConnected, oldBox);
+  }
+
+  /** Open filter dropdowns overlay the "reset all" button and the listing. */
+  private async closeFilterDropdowns(): Promise<void> {
+    const open = this.$(`${this.s.listing.filterItemToggle}[aria-expanded="true"]`).locator('visible=true');
+    for (const toggle of await open.all()) await toggle.click();
+  }
+
   async sortBy(key: string): Promise<void> {
-    await this.waitForXhr(ListingPage.LISTING_XHR, () => this.sorting.selectOption(key));
+    await this.reloadListing(() => this.sorting.selectOption(key));
     await expect(this.page).toHaveURL(new RegExp(`order=${key}`));
   }
 
@@ -77,7 +93,8 @@ export class ListingPage extends BasePage {
     await target.locator(this.s.listing.filterItemToggle).first().click();
     const option = target.locator(this.s.listing.filterOption).nth(optionIndex);
     const label = (await option.innerText()).trim();
-    await this.waitForXhr(ListingPage.LISTING_XHR, () => option.locator('input').check({ force: true }));
+    await this.reloadListing(() => option.locator('input').check({ force: true }));
+    await this.closeFilterDropdowns();
     return label;
   }
 
@@ -85,11 +102,12 @@ export class ListingPage extends BasePage {
     await this.ensureFilterPanelVisible();
     const price = this.$(this.s.listing.filterPrice).locator('visible=true').first();
     await price.locator(this.s.listing.filterItemToggle).first().click();
-    await this.waitForXhr(ListingPage.LISTING_XHR, async () => {
+    await this.reloadListing(async () => {
       if (min !== undefined) await price.locator('input[name="min-price"]').fill(String(min));
       if (max !== undefined) await price.locator('input[name="max-price"]').fill(String(max));
       await price.locator('input[name="max-price"]').press('Tab');
     });
+    await this.closeFilterDropdowns();
   }
 
   get activeFilters(): Locator {
@@ -97,7 +115,8 @@ export class ListingPage extends BasePage {
   }
 
   async resetAllFilters(): Promise<void> {
-    await this.waitForXhr(ListingPage.LISTING_XHR, () =>
+    await this.closeFilterDropdowns();
+    await this.reloadListing(() =>
       this.$(this.s.listing.resetAllFilters).locator('visible=true').first().click(),
     );
   }
