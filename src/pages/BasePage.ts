@@ -28,6 +28,11 @@ export abstract class BasePage {
     return this.page.goto(path, { waitUntil: 'load' });
   }
 
+  /** Clicks a link and waits for the next document's `load` (see `goto`). */
+  async clickAndLoad(target: Locator): Promise<void> {
+    await Promise.all([this.page.waitForEvent('load'), target.click()]);
+  }
+
   /** Shopware sets body classes like "is-ctl-checkout is-act-cartpage". */
   async expectController(ctl: string | RegExp): Promise<void> {
     const re = typeof ctl === 'string' ? new RegExp(`\\bis-ctl-${ctl}\\b`) : ctl;

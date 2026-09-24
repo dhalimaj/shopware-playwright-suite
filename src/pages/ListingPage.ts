@@ -124,7 +124,7 @@ export class ListingPage extends BasePage {
   async openProduct(index = 0): Promise<string> {
     const link = this.productBoxes.nth(index).locator(this.s.listing.productName);
     const name = (await link.innerText()).trim();
-    await Promise.all([this.page.waitForLoadState('domcontentloaded'), link.click()]);
+    await this.clickAndLoad(link);
     return name;
   }
 

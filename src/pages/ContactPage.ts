@@ -24,7 +24,7 @@ export class ContactPage extends BasePage {
     } else {
       await this.goto(this.cfg.routes.home);
       const link = this.$(this.s.footer.link).filter({ hasText: this.cfg.testData.contactLinkText }).first();
-      await Promise.all([this.page.waitForLoadState('domcontentloaded'), link.click()]);
+      await this.clickAndLoad(link);
     }
     await expect(this.form).toBeVisible();
   }
