@@ -2,6 +2,9 @@
 # Required CI/CD variables (masked + protected):
 #   BASE_URL, PROJECT, ADMIN_CLIENT_ID, ADMIN_CLIENT_SECRET (or ADMIN_USERNAME/ADMIN_PASSWORD)
 # Optional: HTTP_USERNAME, HTTP_PASSWORD, SW_ACCESS_KEY, ALLOW_WRITE_TESTS, EXTRA_BROWSERS
+# VPN (optional): VPN_CONFIG (base64 of the .ovpn), VPN_USERNAME, VPN_PASSWORD.
+#   Needs a runner whose docker executor allows it (config.toml → [runners.docker]):
+#   cap_add = ["NET_ADMIN"] and devices = ["/dev/net/tun"]. GitLab.com shared runners can't.
 
 stages: [test]
 
@@ -19,6 +22,9 @@ variables:
     paths: [.npm/]
   before_script:
     - npm ci
+    - scripts/vpn.sh up
+  after_script:
+    - scripts/vpn.sh down
   artifacts:
     when: always
     expire_in: 14 days

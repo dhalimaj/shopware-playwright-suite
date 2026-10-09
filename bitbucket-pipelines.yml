@@ -3,6 +3,9 @@
 # Repository settings → Repository variables (mark secrets as "Secured"):
 #   PROJECT, BASE_URL, ADMIN_USERNAME + ADMIN_PASSWORD (or ADMIN_CLIENT_ID + ADMIN_CLIENT_SECRET)
 #   optional: HTTP_USERNAME, HTTP_PASSWORD, SW_ACCESS_KEY, ALLOW_WRITE_TESTS
+#   VPN (optional): VPN_CONFIG (base64 of the .ovpn), VPN_USERNAME, VPN_PASSWORD.
+#     Bitbucket Cloud runners can't create a tun device, so a VPN project needs a
+#     self-hosted runner started with --cap-add=NET_ADMIN --device /dev/net/tun.
 #
 # Nightly run: Pipelines → Schedules → New schedule → pipeline "custom: full-regression"
 
@@ -21,6 +24,7 @@ definitions:
         script:
           - export CI=true
           - npm ci
+          - scripts/vpn.sh up
           - npx playwright test --grep @smoke --project=chromium
         artifacts:
           - playwright-report/**
@@ -32,6 +36,7 @@ definitions:
         script:
           - export CI=true
           - npm ci
+          - scripts/vpn.sh up
           - npx playwright test --shard=1/2
         artifacts:
           - playwright-report/**
@@ -43,6 +48,7 @@ definitions:
         script:
           - export CI=true
           - npm ci
+          - scripts/vpn.sh up
           - npx playwright test --shard=2/2
         artifacts:
           - playwright-report/**

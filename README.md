@@ -174,6 +174,28 @@ Delete the CI files you don't use.
 Both use the official `mcr.microsoft.com/playwright` image (keep its version in sync with
 `@playwright/test`) and publish the HTML report, traces/videos of failures and a JUnit report.
 
+### Environments behind the company VPN
+
+`scripts/vpn.sh` connects the job to the VPN before the tests run. It does nothing unless
+`VPN_CONFIG` is set, so other projects are unaffected.
+
+1. Ask DevOps for a **dedicated CI VPN user/certificate** on the Sophos firewall. Don't use a
+   personal one. A dedicated user is easy to spot in the VPN logs and can be revoked on its own.
+2. Export its `.ovpn` profile. It must contain everything inline: CA, client cert/key and the
+   `tls-auth`/`tls-crypt` key.
+3. Store it as a secret:
+   - `VPN_CONFIG` = `base64 -i client.ovpn` (base64 so it fits in a single masked variable)
+   - `VPN_USERNAME` / `VPN_PASSWORD` if the profile contains `auth-user-pass`
+4. Delete the local `.ovpn` (`*.ovpn` is gitignored, but don't leave it lying around).
+
+The job container needs `NET_ADMIN` and `/dev/net/tun`:
+- **GitHub Actions** is already configured.
+- **GitLab** needs a runner that allows it (GitLab.com shared runners don't).
+- **Bitbucket Cloud** can't do it at all, so a VPN project needs a self-hosted runner.
+
+The sharded runs open **one VPN session per shard at the same time** using the same profile. If
+the firewall only allows one session per user, set the shard count to 1.
+
 ---
 
 ## Demo shop notes (verified 2026‑09‑24, Shopware 6.7)

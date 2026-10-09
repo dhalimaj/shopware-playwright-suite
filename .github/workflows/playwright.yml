@@ -18,6 +18,8 @@ jobs:
     timeout-minutes: 45
     container:
       image: mcr.microsoft.com/playwright:v1.63.0-noble
+      # needed by scripts/vpn.sh (only used when the VPN_CONFIG secret is set)
+      options: --cap-add=NET_ADMIN --device /dev/net/tun
     strategy:
       fail-fast: false
       matrix:
@@ -41,11 +43,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Connect VPN
+        run: scripts/vpn.sh up
+        env:
+          VPN_CONFIG: ${{ secrets.VPN_CONFIG }}
+          VPN_USERNAME: ${{ secrets.VPN_USERNAME }}
+          VPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
       - name: Run tests
         run: |
           GREP="${{ github.event.inputs.grep }}"
           if [ "${{ github.event_name }}" = "pull_request" ]; then GREP="@smoke"; fi
           npx playwright test ${GREP:+--grep "$GREP"} --shard=${{ matrix.shard }}/2
+      - name: Disconnect VPN
+        if: always()
+        run: scripts/vpn.sh down
       - uses: actions/upload-artifact@v4
         if: always()
         with:
